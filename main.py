@@ -115,8 +115,8 @@ def _ask_mode():
     print("Oracle mode:")
     print("  [1] preprocess  -- build full 2^n truth table once (small n, fast queries)")
     print("  [2] dynamic     -- answer queries on the fly from the k-sparse spectrum")
-    choice = input("Choose 1 or 2 [1]: ").strip()
-    return "dynamic" if choice == "2" else "preprocess"
+    choice = input("Choose 1 or 2 [2]: ").strip()
+    return "preprocess" if choice == "1" else "dynamic"
 
 
 def _ask_int(label, default):
