@@ -1,0 +1,2 @@
+numpy>=1.20
+psutil>=5.9   # optional: richer system-info capture (clock speed, memory)
