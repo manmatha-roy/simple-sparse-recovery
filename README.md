@@ -80,19 +80,26 @@ Options:
 ## Reproducing the paper's experiments
 
 ```bash
-python3 experiments.py            # full run, about 10 minutes on one core
+python3 experiments.py            # full run, about 15 minutes on one core
 python3 experiments.py --quick    # smoke test, about 10 seconds
 ```
 
 The full run writes `results/experiments.json` (raw numbers, plus the system
-configuration) and `results/tables.tex` (four LaTeX tables using `booktabs`):
+configuration) and `results/tables.tex` (five LaTeX tables using `booktabs`):
 
 - **scaling in k** (`n = 20`, `k = 4…256`): queries, time, and success of both algorithms;
 - **scaling in n** (`k = 32`, `n = 12…60`);
 - **the bucket constant** (`iso_const`): the analysis uses 100, but about 3
   already gives 99–100% success with roughly 30× fewer queries; 1 always fails;
 - **structured inputs**: subspace supports with equal or signed coefficients,
-  degree-2 supports, and small integer coefficients.
+  degree-2 supports, and small integer coefficients;
+- **running time**: operation counts of Algorithm 2 against the explicit bound
+  `4ck(n+1)(log2(2ck) − 1)` on the Walsh–Hadamard additions (`c` is the bucket
+  constant), and the measured time per operation.
+
+`python3 experiments.py --only-E6` reruns just the running-time experiment and
+merges it into the saved results. `algorithm2(..., stats=new_stats())` returns
+the operation counts for any single run.
 
 Seeds are fixed, so the default run reproduces the paper's numbers exactly on the
 same numpy version. Times are single-core Python and depend on the machine;
