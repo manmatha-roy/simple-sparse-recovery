@@ -40,7 +40,7 @@ def num_rounds(k):
     return R
 
 
-def _residual_spectra(oracle, n, H, He, D):
+def _residual_spectra(oracle, n, H, He, D, stats=None):
     """Bucket values of the residual on the cosets 0+H, e_1+H, ..., e_n+H.
 
     Returns (base, shifted) where base = residual spectrum on 0 + H and
@@ -58,10 +58,32 @@ def _residual_spectra(oracle, n, H, He, D):
         for i in range(n):
             sign = 1.0 - 2.0 * ((alphas >> i) & 1)
             np.subtract.at(shifted[i], buckets, vals * sign)
+    if stats is not None:
+        s, dimH = len(He), len(H)
+        stats["wht_ops"] += (n + 1) * s * dimH              # s log2 s per transform
+        stats["residual_ops"] += len(D) * (dimH + n + 1)     # bucket + n+1 updates
+        stats["max_dict"] = max(stats["max_dict"], len(D))
     return base, shifted
 
 
-def algorithm2(oracle, n, k, rng, iso_const=100, rounds=None, tol=1e-9):
+def new_stats():
+    """Operation counters for the running-time analysis (see algorithm2)."""
+    return {"wht_ops": 0, "residual_ops": 0, "decode_ops": 0,
+            "dict_updates": 0, "max_dict": 0}
+
+
+def algorithm2(oracle, n, k, rng, iso_const=100, rounds=None, tol=1e-9,
+               stats=None):
+    """Run Algorithm 2. If `stats` is a dict from new_stats(), count operations:
+
+      wht_ops       additions in the n+1 Walsh-Hadamard transforms per round
+                    (|H| log2 |H| each)
+      residual_ops  bucket computations and subtractions for the dictionary
+                    (|D| (dim H + n + 1) per round)
+      decode_ops    bucket scans and sign tests (|H| + n * #decoded per round)
+      dict_updates  dictionary insertions / updates / deletions
+      max_dict      largest dictionary size seen at the start of a round
+    """
     D = {}                                  # dictionary of recovered coefficients
     R = num_rounds(k) if rounds is None else rounds
 
@@ -72,10 +94,13 @@ def algorithm2(oracle, n, k, rng, iso_const=100, rounds=None, tol=1e-9):
         H = random_full_rank_basis(n, dimH, rng)
         He = enumerate_subspace(H, dimH)
 
-        base, shifted = _residual_spectra(oracle, n, H, He, D)
+        base, shifted = _residual_spectra(oracle, n, H, He, D, stats)
 
         # Decode every bucket with a nonzero value on 0 + H.
         occ = np.nonzero(np.abs(base) > tol)[0]
+        if stats is not None:
+            stats["decode_ops"] += len(He) + n * occ.size
+            stats["dict_updates"] += occ.size
         if occ.size == 0:
             continue
         alphas = np.zeros(occ.size, dtype=np.int64)
