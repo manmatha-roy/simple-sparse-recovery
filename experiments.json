@@ -1,0 +1,377 @@
+{
+  "system": "platform    : Linux-6.18.44-fc-v37-x86_64-with-glibc2.39\nprocessor   : x86_64\npython      : 3.12.3\ncpu cores   : 1 logical\nclock speed : 2800 MHz current\ncurrent load: 0% CPU\nmemory total: 3.9 GB\nmemory used : 0.2 GB (6% in use) at run start",
+  "quick": false,
+  "E1": [
+    {
+      "k": 4,
+      "a1": {
+        "time": 0.0010804062500426425,
+        "queries": 5376.0,
+        "success": 0.9
+      },
+      "a2": {
+        "time": 0.002569530550027821,
+        "queries": 16128.0,
+        "success": 1.0
+      }
+    },
+    {
+      "k": 8,
+      "a1": {
+        "time": 0.0016935128500279006,
+        "queries": 21504.0,
+        "success": 0.9
+      },
+      "a2": {
+        "time": 0.003330443200047739,
+        "queries": 32256.0,
+        "success": 1.0
+      }
+    },
+    {
+      "k": 16,
+      "a1": {
+        "time": 0.003607852149986002,
+        "queries": 86016.0,
+        "success": 0.95
+      },
+      "a2": {
+        "time": 0.00576118859984831,
+        "queries": 75264.0,
+        "success": 1.0
+      }
+    },
+    {
+      "k": 32,
+      "a1": {
+        "time": 0.011553513599949383,
+        "queries": 344064.0,
+        "success": 1.0
+      },
+      "a2": {
+        "time": 0.007933510900039664,
+        "queries": 150528.0,
+        "success": 1.0
+      }
+    },
+    {
+      "k": 64,
+      "a1": {
+        "time": 0.05117473944997073,
+        "queries": 1376256.0,
+        "success": 0.95
+      },
+      "a2": {
+        "time": 0.013554511799844704,
+        "queries": 322560.0,
+        "success": 1.0
+      }
+    },
+    {
+      "k": 128,
+      "a1": {
+        "time": 0.30055802060003317,
+        "queries": 5505024.0,
+        "success": 1.0
+      },
+      "a2": {
+        "time": 0.021884952499823383,
+        "queries": 645120.0,
+        "success": 1.0
+      }
+    },
+    {
+      "k": 256,
+      "a1": {
+        "time": 1.5039379341499057,
+        "queries": 22020096.0,
+        "success": 1.0
+      },
+      "a2": {
+        "time": 0.044437487849785386,
+        "queries": 1333248.0,
+        "success": 1.0
+      }
+    }
+  ],
+  "E2": [
+    {
+      "n": 12,
+      "a1": {
+        "time": 0.002690874549983846,
+        "queries": 53248.0,
+        "success": 1.0
+      },
+      "a2": {
+        "time": 0.0052513474500131,
+        "queries": 93184.0,
+        "success": 1.0
+      }
+    },
+    {
+      "n": 16,
+      "a1": {
+        "time": 0.008719360200069559,
+        "queries": 278528.0,
+        "success": 1.0
+      },
+      "a2": {
+        "time": 0.006577141200057213,
+        "queries": 121856.0,
+        "success": 1.0
+      }
+    },
+    {
+      "n": 20,
+      "a1": {
+        "time": 0.010531264400015061,
+        "queries": 344064.0,
+        "success": 1.0
+      },
+      "a2": {
+        "time": 0.00811004955014596,
+        "queries": 150528.0,
+        "success": 1.0
+      }
+    },
+    {
+      "n": 24,
+      "a1": {
+        "time": 0.012814183750020903,
+        "queries": 409600.0,
+        "success": 1.0
+      },
+      "a2": {
+        "time": 0.009484641900019141,
+        "queries": 179200.0,
+        "success": 1.0
+      }
+    },
+    {
+      "n": 32,
+      "a1": {
+        "time": 0.016405222450083558,
+        "queries": 540672.0,
+        "success": 0.95
+      },
+      "a2": {
+        "time": 0.012077770499826102,
+        "queries": 236544.0,
+        "success": 1.0
+      }
+    },
+    {
+      "n": 40,
+      "a1": {
+        "time": 0.01987487330004569,
+        "queries": 671744.0,
+        "success": 1.0
+      },
+      "a2": {
+        "time": 0.014728454150116477,
+        "queries": 293888.0,
+        "success": 1.0
+      }
+    },
+    {
+      "n": 48,
+      "a1": {
+        "time": 0.023556930249833387,
+        "queries": 802816.0,
+        "success": 0.95
+      },
+      "a2": {
+        "time": 0.018033805649884015,
+        "queries": 351232.0,
+        "success": 1.0
+      }
+    },
+    {
+      "n": 60,
+      "a1": {
+        "time": 0.03139195205003489,
+        "queries": 999424.0,
+        "success": 1.0
+      },
+      "a2": {
+        "time": 0.022997371550229673,
+        "queries": 437248.0,
+        "success": 1.0
+      }
+    }
+  ],
+  "E3": [
+    {
+      "iso_const": 3,
+      "time": 0.004262173699999039,
+      "queries": 12000.0,
+      "success": 1.0
+    },
+    {
+      "iso_const": 5,
+      "time": 0.005078668319847566,
+      "queries": 24000.0,
+      "success": 1.0
+    },
+    {
+      "iso_const": 10,
+      "time": 0.006135669059933662,
+      "queries": 48000.0,
+      "success": 1.0
+    },
+    {
+      "iso_const": 20,
+      "time": 0.007831215060059548,
+      "queries": 96000.0,
+      "success": 1.0
+    },
+    {
+      "iso_const": 50,
+      "time": 0.011205757800007632,
+      "queries": 192000.0,
+      "success": 1.0
+    },
+    {
+      "iso_const": 100,
+      "time": 0.016588936520017795,
+      "queries": 384000.0,
+      "success": 1.0
+    }
+  ],
+  "E4": [
+    {
+      "family": "Subspace, equal coefficients",
+      "success": 1.0,
+      "queries": 384000.0
+    },
+    {
+      "family": "Subspace, random signs",
+      "success": 1.0,
+      "queries": 384000.0
+    },
+    {
+      "family": "Degree $\\le 2$, equal coefficients",
+      "success": 1.0,
+      "queries": 384000.0
+    },
+    {
+      "family": "Random support, small integer coefficients",
+      "success": 1.0,
+      "queries": 384000.0
+    }
+  ],
+  "E5": [
+    {
+      "k": 64,
+      "iso_const": 1,
+      "extra_rounds": 0,
+      "success": 0.0,
+      "queries": 3000.0
+    },
+    {
+      "k": 64,
+      "iso_const": 1,
+      "extra_rounds": 2,
+      "success": 0.0,
+      "queries": 3150.0
+    },
+    {
+      "k": 64,
+      "iso_const": 1.5,
+      "extra_rounds": 0,
+      "success": 0.8,
+      "queries": 6000.0
+    },
+    {
+      "k": 64,
+      "iso_const": 1.5,
+      "extra_rounds": 2,
+      "success": 0.99,
+      "queries": 6300.0
+    },
+    {
+      "k": 64,
+      "iso_const": 2,
+      "extra_rounds": 0,
+      "success": 0.9,
+      "queries": 6000.0
+    },
+    {
+      "k": 64,
+      "iso_const": 2,
+      "extra_rounds": 2,
+      "success": 0.97,
+      "queries": 6300.0
+    },
+    {
+      "k": 64,
+      "iso_const": 3,
+      "extra_rounds": 0,
+      "success": 0.99,
+      "queries": 12000.0
+    },
+    {
+      "k": 64,
+      "iso_const": 3,
+      "extra_rounds": 2,
+      "success": 1.0,
+      "queries": 12600.0
+    },
+    {
+      "k": 256,
+      "iso_const": 1,
+      "extra_rounds": 0,
+      "success": 0.0,
+      "queries": 12400.0
+    },
+    {
+      "k": 256,
+      "iso_const": 1,
+      "extra_rounds": 2,
+      "success": 0.0,
+      "queries": 12700.0
+    },
+    {
+      "k": 256,
+      "iso_const": 1.5,
+      "extra_rounds": 0,
+      "success": 0.93,
+      "queries": 24800.0
+    },
+    {
+      "k": 256,
+      "iso_const": 1.5,
+      "extra_rounds": 2,
+      "success": 0.99,
+      "queries": 25400.0
+    },
+    {
+      "k": 256,
+      "iso_const": 2,
+      "extra_rounds": 0,
+      "success": 0.95,
+      "queries": 24800.0
+    },
+    {
+      "k": 256,
+      "iso_const": 2,
+      "extra_rounds": 2,
+      "success": 1.0,
+      "queries": 25400.0
+    },
+    {
+      "k": 256,
+      "iso_const": 3,
+      "extra_rounds": 0,
+      "success": 1.0,
+      "queries": 49600.0
+    },
+    {
+      "k": 256,
+      "iso_const": 3,
+      "extra_rounds": 2,
+      "success": 1.0,
+      "queries": 50800.0
+    }
+  ]
+}
