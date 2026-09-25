@@ -1,26 +1,31 @@
 """
 Driver for exact Fourier-sparse recovery: sweep k, run both routines, report
-per-routine TIMING and success rate.
+per-routine timing, query count, and success rate.
 
-Run:  python3 main.py
+Interactive:      python3 main.py
+Non-interactive:  python3 main.py --mode dynamic --n 16 --k-start 4 --k-end 10 \
+                                  --k-step 2 --trials 10 --seed 0
 
-Prompts (press Enter to accept the shown default):
+Interactive prompts (press Enter to accept the shown default):
   - oracle mode : preprocess (build 2^n table once) or dynamic (evaluate on the fly)
-  - n           : ambient dimension                     [default 16]
-  - k start     : first sparsity in the sweep           [default 4]
+  - n           : ambient dimension                      [default 16]
+  - k start     : first sparsity in the sweep            [default 4]
   - k end       : last sparsity in the sweep, INCLUSIVE  [default 10]
   - k step      : increment                              [default 2]
   - trials      : trials per (n, k) config               [default 10]
 
 For each k the driver runs Algorithm 1 and Algorithm 2 on the SAME random
 k-sparse instances and reports, per routine:
-    time (s)  -- average recovery time (query-evaluation time excluded)
+    time (s)  -- average recovery time (function-evaluation time excluded)
+    queries   -- average number of oracle queries
     success   -- fraction of trials with exact recovery
 
-The final table is also saved to  testresults/<timestamped>.txt.
+The report is also saved to  testresults/<mode>_n<n>_k<range>_<timestamp>.txt.
 """
 
+import argparse
 import os
+import sys
 import time
 from datetime import datetime
 
@@ -45,31 +50,32 @@ def exact(rec, true_spec, tol=1e-6):
 # One (n, k) config: run both routines over `trials` shared instances
 # ---------------------------------------------------------------------------
 
+def _run_one(alg, n, k, support, coeffs, mode, rng, true_spec):
+    o = Oracle(n, support, coeffs, mode)
+    t0 = time.perf_counter()
+    rec = alg(o, n, k, rng)
+    elapsed = (time.perf_counter() - t0) - o.oracle_time
+    return elapsed, o.count, exact(rec, true_spec)
+
+
 def run_config(n, k, trials, mode, rng):
-    a1_time = a2_time = 0.0
-    a1ok = a2ok = 0
+    stats = {name: [0.0, 0, 0] for name in ("a1", "a2")}   # time, queries, ok
 
     for _ in range(trials):
         support, coeffs, ts = make_sparse_spectrum(n, k, rng)
-
-        o1 = Oracle(n, support, coeffs, mode)
-        t0 = time.perf_counter()
-        r1 = algorithm1(o1, n, k, rng)
-        a1_time += (time.perf_counter() - t0) - o1.oracle_time
-        a1ok += exact(r1, ts)
-
-        o2 = Oracle(n, support, coeffs, mode)
-        t0 = time.perf_counter()
-        r2 = algorithm2(o2, n, k, rng)
-        a2_time += (time.perf_counter() - t0) - o2.oracle_time
-        a2ok += exact(r2, ts)
+        for name, alg in (("a1", algorithm1), ("a2", algorithm2)):
+            t, q, ok = _run_one(alg, n, k, support, coeffs, mode, rng, ts)
+            stats[name][0] += t
+            stats[name][1] += q
+            stats[name][2] += ok
 
     T = trials
-    return {
-        "n": n, "k": k, "trials": T,
-        "a1_time": a1_time / T, "a1_success": a1ok / T,
-        "a2_time": a2_time / T, "a2_success": a2ok / T,
-    }
+    row = {"n": n, "k": k, "trials": T}
+    for name, (t, q, ok) in stats.items():
+        row[f"{name}_time"] = t / T
+        row[f"{name}_queries"] = q / T
+        row[f"{name}_success"] = ok / T
+    return row
 
 
 # ---------------------------------------------------------------------------
@@ -83,23 +89,25 @@ def sweep(mode, n, k_start, k_end, k_step, trials, seed=0, verbose=True):
 
     lines = []
     lines.append(f"Oracle mode: {mode.upper()}   n={n}   "
-                 f"k = {k_start}..{k_end} step {k_step}   {trials} trials/config")
+                 f"k = {k_start}..{k_end} step {k_step}   "
+                 f"{trials} trials/config   seed={seed}")
     lines.append("")
-    lines.append(f"{'k':>3} | {'A1 time(s)':>11} {'A1 succ':>8} "
-                 f"| {'A2 time(s)':>11} {'A2 succ':>8}")
-    lines.append("-" * 50)
+    lines.append(f"{'k':>4} | {'A1 time(s)':>10} {'A1 queries':>11} {'A1 succ':>8} "
+                 f"| {'A2 time(s)':>10} {'A2 queries':>11} {'A2 succ':>8}")
+    lines.append("-" * 76)
 
     rows = []
     for k in ks:
         if k > (1 << n):
-            lines.append(f"{k:>3} | skipped: k > 2^n")
+            lines.append(f"{k:>4} | skipped: k > 2^n")
             continue
-        if k * k >= (1 << n):
-            lines.append(f"{k:>3} | (warning: k^2 >= 2^n, past useful sparse regime)")
         r = run_config(n, k, trials, mode, rng)
         rows.append(r)
-        lines.append(f"{k:>3} | {r['a1_time']:>11.4f} {r['a1_success']:>7.0%} "
-                     f"| {r['a2_time']:>11.4f} {r['a2_success']:>7.0%}")
+        lines.append(
+            f"{k:>4} | {r['a1_time']:>10.4f} {r['a1_queries']:>11.0f} "
+            f"{r['a1_success']:>7.0%} "
+            f"| {r['a2_time']:>10.4f} {r['a2_queries']:>11.0f} "
+            f"{r['a2_success']:>7.0%}")
 
     report = "\n".join(lines)
     if verbose:
@@ -108,7 +116,7 @@ def sweep(mode, n, k_start, k_end, k_step, trials, seed=0, verbose=True):
 
 
 # ---------------------------------------------------------------------------
-# Prompts
+# Input: command-line flags, or interactive prompts if no flags are given
 # ---------------------------------------------------------------------------
 
 def _ask_mode():
@@ -130,22 +138,44 @@ def _ask_int(label, default):
         return default
 
 
+def _parse_args():
+    p = argparse.ArgumentParser(description=__doc__.split("\n")[1])
+    p.add_argument("--mode", choices=["preprocess", "dynamic"], default="dynamic")
+    p.add_argument("--n", type=int, default=16)
+    p.add_argument("--k-start", type=int, default=4)
+    p.add_argument("--k-end", type=int, default=10)
+    p.add_argument("--k-step", type=int, default=2)
+    p.add_argument("--trials", type=int, default=10)
+    p.add_argument("--seed", type=int, default=0)
+    return p.parse_args()
+
+
 if __name__ == "__main__":
-    mode = _ask_mode()
-    n = _ask_int("n", 16)
-    k_start = _ask_int("k start", 4)
-    k_end = _ask_int("k end (inclusive)", 10)
-    k_step = _ask_int("k step", 2)
-    trials = _ask_int("trials", 10)
+    if len(sys.argv) > 1:
+        a = _parse_args()
+        mode, n, k_start, k_end, k_step, trials, seed = (
+            a.mode, a.n, a.k_start, a.k_end, a.k_step, a.trials, a.seed)
+    else:
+        mode = _ask_mode()
+        n = _ask_int("n", 16)
+        k_start = _ask_int("k start", 4)
+        k_end = _ask_int("k end (inclusive)", 10)
+        k_step = _ask_int("k step", 2)
+        trials = _ask_int("trials", 10)
+        seed = 0
+
+    if not 1 <= n <= 62:
+        sys.exit("n must be between 1 and 62 (frequencies are stored as int64).")
+    if mode == "preprocess" and n > 24:
+        sys.exit("preprocess mode builds a 2^n table; use dynamic mode for n > 24.")
 
     # Capture system configuration BEFORE the run, so timings are self-describing.
     sysconf = system_info()
     header = "System configuration (at run start)\n" + "-" * 36 + "\n" + sysconf
     print("\n" + header)
 
-    rows, report = sweep(mode, n, k_start, k_end, k_step, trials)
+    rows, report = sweep(mode, n, k_start, k_end, k_step, trials, seed=seed)
 
-    # Save system config + results table to testresults/<timestamp>.txt
     out_dir = "testresults"
     os.makedirs(out_dir, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
