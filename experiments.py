@@ -12,11 +12,14 @@ Experiments (all times exclude function-evaluation time):
   E4  structured inputs n = 24, k = 64, Algorithm 2, four support families
   E5  small iso_const   n = 24, k in {64, 256}, iso_const in {1, 1.5, 2, 3},
                         with R and R+2 rounds
+  E6  running time      Algorithm 2, iso_const in {100, 3}: operation counts
+                        against the explicit bound, and time per operation
 
-E1-E4 share one random generator with seed 0, and E5 uses seed 7, so the
+E1-E4 share one random generator with seed 0, E5 uses seed 7 and E6 seed 11, so the
 default run reproduces the paper's numbers exactly on the same numpy version.
 --quick uses fewer trials and smaller sizes, as a smoke test (about 10 s).
 --tables-only rebuilds results/tables.tex from results/experiments.json.
+--only-E6 runs E6 alone and merges it into results/experiments.json.
 """
 
 import json
@@ -29,7 +32,7 @@ import numpy as np
 from oracle import (Oracle, make_sparse_spectrum, random_full_rank_basis,
                     enumerate_subspace)
 from algorithm1 import algorithm1
-from algorithm2 import algorithm2, num_rounds
+from algorithm2 import algorithm2, num_rounds, new_stats
 from sysinfo import system_info
 
 
@@ -159,7 +162,53 @@ def main(quick=False):
                                   "success": S / tr5, "queries": Q / tr5})
                 print(f"  k={k:4d} iso={iso:4} rounds=R+{extra}  "
                       f"success={S / tr5:.2f}  queries={Q / tr5:.0f}", flush=True)
+    res["E6"] = run_E6(quick)
     return res
+
+
+def wht_bound(n, k, c):
+    """Explicit bound on the WHT additions: 4 c k (n+1) (log2(2ck) - 1)."""
+    return 4 * c * k * (n + 1) * (np.log2(2 * c * k) - 1)
+
+
+def run_E6(quick=False):
+    rng = np.random.default_rng(11)
+    grid = ([("preprocess", 20, 16), ("dynamic", 30, 16)] if quick else
+            [("preprocess", 20, k) for k in (16, 64, 256, 1024)] +
+            [("dynamic", n, 64) for n in (30, 45, 60)])
+    trials = 2 if quick else 10
+    rows = []
+    print(f"E6: running time of Algorithm 2 ({trials} trials)", flush=True)
+    for iso in (100, 3):
+        for mode, n, k in grid:
+            acc = {key: 0.0 for key in ("time", "wht_ops", "residual_ops",
+                                        "decode_ops", "dict_updates", "success")}
+            max_dict = 0
+            for _ in range(trials):
+                sup, co, ts = make_sparse_spectrum(n, k, rng)
+                o = Oracle(n, sup, co, mode)
+                st = new_stats()
+                t0 = time.perf_counter()
+                rec = algorithm2(o, n, k, rng, iso_const=iso, stats=st)
+                acc["time"] += (time.perf_counter() - t0) - o.oracle_time
+                acc["success"] += exact(rec, ts)
+                for key in ("wht_ops", "residual_ops", "decode_ops", "dict_updates"):
+                    acc[key] += st[key]
+                max_dict = max(max_dict, st["max_dict"])
+            row = {key: v / trials for key, v in acc.items()}
+            total = row["wht_ops"] + row["residual_ops"] + row["decode_ops"]
+            row.update({"iso_const": iso, "mode": mode, "n": n, "k": k,
+                        "max_dict": max_dict, "total_ops": total,
+                        "wht_bound": wht_bound(n, k, iso),
+                        "ops_per_nklogk": total / (n * k * np.log2(k)),
+                        "ns_per_op": 1e9 * row["time"] / total})
+            rows.append(row)
+            print(f"  iso={iso:3d} n={n:2d} k={k:4d}  total ops={total:.3e}  "
+                  f"WHT/bound={row['wht_ops'] / row['wht_bound']:.2f}  "
+                  f"ops/(nk log k)={row['ops_per_nklogk']:.0f}  "
+                  f"ns/op={row['ns_per_op']:.2f}  max|D|={max_dict}  "
+                  f"success={row['success']:.2f}", flush=True)
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -253,6 +302,29 @@ def latex_tables(res, note=""):
     for r in res["E4"]:
         out.append(f"{r['family']} & {_q(r['queries'])} & {_p(r['success'])} \\\\")
     out += [r"\bottomrule", r"\end{tabular}", r"\end{table}", ""]
+    # Table 5: running time
+    if "E6" in res:
+        out += [r"\begin{table}[t]", r"\centering",
+                r"\caption{Running time of Algorithm~\ref{alg:main}. Operations are "
+                r"additions in the Walsh--Hadamard transforms, dictionary "
+                r"bookkeeping, and decoding; the WHT bound is "
+                r"$4ck(n+1)(\log_2(2ck)-1)$ with $c$ the bucket constant. "
+                r"Times exclude function evaluation. 10 instances per row.}",
+                r"\label{tab:runtime}",
+                r"\begin{tabular}{rrr rrr rr}", r"\toprule",
+                r"$c$ & $n$ & $k$ & total ops & WHT / bound & "
+                r"ops$/(nk\log_2 k)$ & time (s) & ns / op \\",
+                r"\midrule"]
+        prev = None
+        for r in res["E6"]:
+            if prev is not None and r["iso_const"] != prev:
+                out.append(r"\midrule")
+            prev = r["iso_const"]
+            out.append(f"{r['iso_const']} & {r['n']} & {r['k']} & "
+                       f"{_q(r['total_ops'])} & {r['wht_ops'] / r['wht_bound']:.2f} & "
+                       f"{r['ops_per_nklogk']:.0f} & {r['time']:.3f} & "
+                       f"{r['ns_per_op']:.2f} \\\\")
+        out += [r"\bottomrule", r"\end{tabular}", r"\end{table}", ""]
     return "\n".join(out)
 
 
@@ -263,6 +335,16 @@ if __name__ == "__main__":
         with open("results/tables.tex", "w") as fh:
             fh.write(latex_tables(res))
         sys.exit("Rewrote results/tables.tex from results/experiments.json")
+    if "--only-E6" in sys.argv:
+        path = "results/experiments.json"
+        res = json.load(open(path)) if os.path.exists(path) else {}
+        res["E6"] = run_E6()
+        with open(path, "w") as fh:
+            json.dump(res, fh, indent=2)
+        if all(key in res for key in ("E1", "E2", "E3", "E4", "E5")):
+            with open("results/tables.tex", "w") as fh:
+                fh.write(latex_tables(res))
+        sys.exit("Merged E6 into results/experiments.json")
     quick = "--quick" in sys.argv
     res = main(quick=quick)
     os.makedirs("results", exist_ok=True)
