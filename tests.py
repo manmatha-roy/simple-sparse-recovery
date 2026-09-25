@@ -11,6 +11,12 @@ Self-checks for the two algorithms.  Run:  python3 tests.py
      subspace with equal coefficients) are still recovered.
   5. Algorithm 2 decodes from the fixed shifts 0, e_1, ..., e_n only, so its
      query points depend only on the random subspaces (non-adaptivity).
+  6. Operation counts of Algorithm 2 stay within the explicit running-time
+     bounds, with bucket constant c:
+       WHT additions  <= 4ck(n+1)(log2(2ck) - 1)       (always)
+       |D_r|          <= 4k/3                          (on success)
+       bookkeeping    <= R (4k/3)(n + 1 + log2(2ck))   (on success)
+       decoding       <= 4ck + (4/3)kn                 (on success)
 """
 
 import numpy as np
@@ -18,7 +24,7 @@ import numpy as np
 from oracle import (Oracle, make_sparse_spectrum, fwht, random_full_rank_basis,
                     enumerate_subspace, bucket_index, parity)
 from algorithm1 import algorithm1
-from algorithm2 import algorithm2
+from algorithm2 import algorithm2, new_stats, num_rounds
 
 
 def exact(rec, true_spec, tol=1e-6):
@@ -107,6 +113,23 @@ def test_nonadaptive_query_points(rng):
     print("ok  Algorithm 2 is non-adaptive (query points independent of f)")
 
 
+def test_runtime_bounds(rng):
+    for n, k, c in ((20, 16, 100), (20, 100, 100), (30, 64, 3), (24, 300, 3)):
+        for _ in range(5):
+            sup, co, ts = make_sparse_spectrum(n, k, rng)
+            st = new_stats()
+            rec = algorithm2(Oracle(n, sup, co, "dynamic"), n, k, rng,
+                             iso_const=c, stats=st)
+            L = np.log2(2 * c * k)
+            assert st["wht_ops"] <= 4 * c * k * (n + 1) * (L - 1), ("WHT", n, k, c)
+            if exact(rec, ts):
+                R = num_rounds(k)
+                assert st["max_dict"] <= 4 * k / 3, ("dict", n, k, c)
+                assert st["residual_ops"] <= R * (4 * k / 3) * (n + 1 + L)
+                assert st["decode_ops"] <= 4 * c * k + 4 * k * n / 3
+        print(f"ok  runtime bounds hold  n={n} k={k:3d} c={c}")
+
+
 if __name__ == "__main__":
     rng = np.random.default_rng(2026)
     test_bucket_convention(rng)
@@ -114,4 +137,5 @@ if __name__ == "__main__":
     test_query_budgets(rng)
     test_structured_support(rng)
     test_nonadaptive_query_points(rng)
+    test_runtime_bounds(rng)
     print("\nall tests passed")
